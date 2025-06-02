@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wchar.h>
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -34,7 +35,7 @@ void s_read(wchar_t* input, size_t* input_length) {
 }
 
 void s_eval(wchar_t* input, const size_t input_length, wchar_t* output, const size_t output_size) {
-    wchar_t* context;
+    wchar_t* context = NULL;
     const wchar_t* token = wcstok_r(input, L" ", &context);
 
     if (wcscmp(token, L"exit") == 0) {
