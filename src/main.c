@@ -49,6 +49,11 @@ void s_eval(wchar_t* input, const size_t input_length, wchar_t* output, const si
         exit(exit_code);
     }
 
+    if (wcscmp(token, L"echo") == 0) {
+        wcscpy_s(output, output_size, context);
+        return;
+    }
+
     swprintf(output, output_size, L"%ls: command not found", input);
 }
 
