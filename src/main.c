@@ -1,9 +1,13 @@
 #include <fcntl.h>
-#include <io.h>
-#include <locale.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <wchar.h>
+
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <locale.h>
+#endif
 
 #define INPUT_BUFFER_SIZE 1024
 #define OUTPUT_BUFFER_SIZE 1024
