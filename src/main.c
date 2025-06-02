@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS 1
+
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -8,8 +10,6 @@
 #if defined(_WIN32) || defined(_WIN64)
 
 #include <io.h>
-#define strtok strtok_s
-#define wcstok wcstok_s
 
 #else
 
@@ -50,7 +50,9 @@ void s_eval(wchar_t* input, const size_t input_length, wchar_t* output, const si
     }
 
     if (wcscmp(token, L"echo") == 0) {
-        wcscpy_s(output, output_size, context);
+        if (context != NULL) {
+            wcscpy(output, context);
+        }
         return;
     }
 
