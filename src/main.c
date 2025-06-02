@@ -1,4 +1,3 @@
-#include <corecrt_wstring.h>
 #include <fcntl.h>
 #include <io.h>
 #include <locale.h>
