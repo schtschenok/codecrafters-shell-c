@@ -8,8 +8,8 @@
 #if defined(_WIN32) || defined(_WIN64)
 
 #include <io.h>
-#define strtok_r strtok_s
-#define wcstok_r wcstok_s
+#define strtok strtok_s
+#define wcstok wcstok_s
 
 #else
 
@@ -36,10 +36,10 @@ void s_read(wchar_t* input, size_t* input_length) {
 
 void s_eval(wchar_t* input, const size_t input_length, wchar_t* output, const size_t output_size) {
     wchar_t* context = NULL;
-    const wchar_t* token = wcstok_r(input, L" ", &context);
+    const wchar_t* token = wcstok(input, L" ", &context);
 
     if (wcscmp(token, L"exit") == 0) {
-        token = wcstok_r(NULL, L" ", &context);
+        token = wcstok(NULL, L" ", &context);
 
         if (token == NULL) {
             exit(0);
