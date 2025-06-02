@@ -24,7 +24,7 @@ void s_read(wchar_t* input) {
 }
 
 void s_eval(const wchar_t* input, const size_t output_size, wchar_t* output) {
-    swprintf(output, output_size, L"%ls: Command not found", input);
+    swprintf(output, output_size, L"%ls: command not found", input);
 }
 
 int main(int argc, char* argv[]) {
