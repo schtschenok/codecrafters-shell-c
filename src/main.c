@@ -45,7 +45,7 @@ void builtin_exit(wchar_t* input, wchar_t* output) {
 }
 
 void builtin_echo(wchar_t* input, wchar_t* output) {
-    wcscpy(output, input);
+    swprintf(output, OUTPUT_BUFFER_SIZE, L"%ls", input);
 }
 
 void builtin_type(wchar_t* input, wchar_t* output) {
@@ -59,8 +59,7 @@ void builtin_type(wchar_t* input, wchar_t* output) {
 }
 
 void s_print(const wchar_t* input) {
-    wprintf(input);
-    wprintf(L"\n");
+    wprintf(L"%ls\n", input);
 }
 
 void s_read(wchar_t* input) {
@@ -74,13 +73,16 @@ void s_eval(wchar_t* input, wchar_t* output, const size_t output_size) {
     wchar_t* context = NULL;
     const wchar_t* token = wcstok(input, L" ", &context);
 
-    for (int i = 0; i < BUILTINS_LENGTH; i++) {
-        if (wcscmp(token, builtins[i].wstring) == 0) {
-            builtins[i].function(context, output);
-            return;
+    if (token) {
+        for (int i = 0; i < BUILTINS_LENGTH; i++) {
+            if (wcscmp(token, builtins[i].wstring) == 0) {
+                builtins[i].function(context, output);
+                return;
+            }
         }
-        swprintf(output, output_size, L"%ls: command not found", input);
     }
+
+    swprintf(output, output_size, L"%ls: command not found", input);
 }
 
 int main(int argc, char* argv[]) {
