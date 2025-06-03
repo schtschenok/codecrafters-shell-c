@@ -19,6 +19,8 @@
 #define INPUT_BUFFER_SIZE 1024
 #define OUTPUT_BUFFER_SIZE 1024
 
+#define BUILTIN_DEFINE(name) void builtin_##name(wchar_t* input, wchar_t* output)
+
 static bool keep_running = true;
 
 struct wstring_to_function_pair {
@@ -26,11 +28,12 @@ struct wstring_to_function_pair {
     void (*function)(wchar_t*, wchar_t*);
 };
 
-void builtin_exit(wchar_t* input, wchar_t* output);
-void builtin_echo(wchar_t* input, wchar_t* output);
-void builtin_type(wchar_t* input, wchar_t* output);
-
 #define BUILTINS_LENGTH 3
+
+BUILTIN_DEFINE(exit);
+BUILTIN_DEFINE(echo);
+BUILTIN_DEFINE(type);
+
 struct wstring_to_function_pair builtins[BUILTINS_LENGTH] = {{L"exit", builtin_exit},
                                                              {L"echo", builtin_echo},
                                                              {L"type", builtin_type}};
@@ -45,6 +48,9 @@ void builtin_exit(wchar_t* input, wchar_t* output) {
 }
 
 void builtin_echo(wchar_t* input, wchar_t* output) {
+    if (!input) {
+        input = L"";
+    }
     swprintf(output, OUTPUT_BUFFER_SIZE, L"%ls", input);
 }
 
@@ -59,7 +65,8 @@ void builtin_type(wchar_t* input, wchar_t* output) {
 }
 
 void s_print(const wchar_t* input) {
-    wprintf(L"%ls\n", input);
+    fputws(input, stdout);
+    fputws(L"\n", stdout);
 }
 
 void s_read(wchar_t* input) {
