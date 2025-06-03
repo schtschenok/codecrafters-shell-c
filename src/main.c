@@ -21,41 +21,66 @@
 
 static bool keep_running = true;
 
+struct wstring_to_function_pair {
+    wchar_t* wstring;
+    void (*function)(wchar_t*, wchar_t*);
+};
+
+void builtin_exit(wchar_t* input, wchar_t* output);
+void builtin_echo(wchar_t* input, wchar_t* output);
+void builtin_type(wchar_t* input, wchar_t* output);
+
+#define BUILTINS_LENGTH 3
+struct wstring_to_function_pair builtins[BUILTINS_LENGTH] = {{L"exit", builtin_exit},
+                                                             {L"echo", builtin_echo},
+                                                             {L"type", builtin_type}};
+
+void builtin_exit(wchar_t* input, wchar_t* output) {
+    if (input == NULL) {
+        exit(0);
+    }
+
+    const long int exit_code = wcstol(input, NULL, 10);
+    exit(exit_code);
+}
+
+void builtin_echo(wchar_t* input, wchar_t* output) {
+    wcscpy(output, input);
+}
+
+void builtin_type(wchar_t* input, wchar_t* output) {
+    for (int i = 0; i < BUILTINS_LENGTH; i++) {
+        if (wcscmp(input, builtins[i].wstring) == 0) {
+            swprintf(output, OUTPUT_BUFFER_SIZE, L"%ls is a shell builtin", input);
+            return;
+        }
+    }
+    swprintf(output, OUTPUT_BUFFER_SIZE, L"%ls: not found", input);
+}
+
 void s_print(const wchar_t* input) {
     wprintf(input);
     wprintf(L"\n");
 }
 
-void s_read(wchar_t* input, size_t* input_length) {
+void s_read(wchar_t* input) {
     fgetws(input, INPUT_BUFFER_SIZE, stdin);
 
     const size_t input_buffer_end = wcscspn(input, L"\r\n");
     input[input_buffer_end] = 0;
 }
 
-void s_eval(wchar_t* input, const size_t input_length, wchar_t* output, const size_t output_size) {
+void s_eval(wchar_t* input, wchar_t* output, const size_t output_size) {
     wchar_t* context = NULL;
     const wchar_t* token = wcstok(input, L" ", &context);
 
-    if (wcscmp(token, L"exit") == 0) {
-        token = wcstok(NULL, L" ", &context);
-
-        if (token == NULL) {
-            exit(0);
+    for (int i = 0; i < BUILTINS_LENGTH; i++) {
+        if (wcscmp(token, builtins[i].wstring) == 0) {
+            builtins[i].function(context, output);
+            return;
         }
-
-        const long int exit_code = wcstol(token, NULL, 10);
-        exit(exit_code);
+        swprintf(output, output_size, L"%ls: command not found", input);
     }
-
-    if (wcscmp(token, L"echo") == 0) {
-        if (context != NULL) {
-            wcscpy(output, context);
-        }
-        return;
-    }
-
-    swprintf(output, output_size, L"%ls: command not found", input);
 }
 
 int main(int argc, char* argv[]) {
@@ -73,12 +98,10 @@ int main(int argc, char* argv[]) {
     wchar_t input_buffer[INPUT_BUFFER_SIZE];
     wchar_t output_buffer[OUTPUT_BUFFER_SIZE];
 
-    size_t input_length = 0;
-
     while (keep_running) {
         wprintf(L"$ ");
-        s_read(input_buffer, &input_length);
-        s_eval(input_buffer, input_length, output_buffer, OUTPUT_BUFFER_SIZE);
+        s_read(input_buffer);
+        s_eval(input_buffer, output_buffer, OUTPUT_BUFFER_SIZE);
         s_print(output_buffer);
     }
 }
