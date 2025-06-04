@@ -1,9 +1,11 @@
 #define _CRT_SECURE_NO_WARNINGS 1
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wchar.h>
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -18,6 +20,9 @@
 
 #define INPUT_BUFFER_SIZE 1024
 #define OUTPUT_BUFFER_SIZE 1024
+#define SYSPATH_MAX_SIZE 4096
+
+static const char* syspath;
 
 #define BUILTIN_DEFINE(name) void builtin_##name(wchar_t* input, wchar_t* output)
 
@@ -34,9 +39,9 @@ BUILTIN_DEFINE(exit);
 BUILTIN_DEFINE(echo);
 BUILTIN_DEFINE(type);
 
-struct wstring_to_function_pair builtins[BUILTINS_LENGTH] = {{L"exit", builtin_exit},
-                                                             {L"echo", builtin_echo},
-                                                             {L"type", builtin_type}};
+static const struct wstring_to_function_pair builtins[BUILTINS_LENGTH] = {{L"exit", builtin_exit},
+                                                                          {L"echo", builtin_echo},
+                                                                          {L"type", builtin_type}};
 
 void builtin_exit(wchar_t* input, wchar_t* output) {
     if (input == NULL) {
@@ -61,6 +66,33 @@ void builtin_type(wchar_t* input, wchar_t* output) {
             return;
         }
     }
+
+    if (syspath) {
+        char path[SYSPATH_MAX_SIZE];
+        sprintf(path, "%s", syspath);
+
+        char* context = NULL;
+        const char* dir = strtok_r(path, ":", &context);
+
+        struct dirent* de;
+
+        while (dir != NULL) {
+            DIR* dr = opendir(dir);
+            if (dr) {
+                while ((de = readdir(dr)) != NULL) {
+                    if (de->d_type == DT_REG) {
+                        mbstowcs(output, de->d_name, OUTPUT_BUFFER_SIZE);
+                        if (wcscmp(input, output) == 0) {
+                            swprintf(output, OUTPUT_BUFFER_SIZE, L"%ls is %s/%ls", input, dir, input);
+                            return;
+                        }
+                    }
+                }
+            }
+            dir = strtok_r(NULL, ":", &context);
+        }
+    }
+
     swprintf(output, OUTPUT_BUFFER_SIZE, L"%ls: not found", input);
 }
 
@@ -106,6 +138,8 @@ int main(int argc, char* argv[]) {
 
     wchar_t input_buffer[INPUT_BUFFER_SIZE];
     wchar_t output_buffer[OUTPUT_BUFFER_SIZE];
+
+    syspath = getenv("PATH");
 
     while (keep_running) {
         wprintf(L"$ ");
