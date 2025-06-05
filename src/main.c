@@ -117,7 +117,6 @@ void builtin_type(wchar_t* input, wchar_t* output) {
 
 void s_print(const wchar_t* input) {
     fputws(input, stdout);
-    // fputws(L"\n", stdout);
 }
 
 void s_read(wchar_t* input) {
