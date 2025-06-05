@@ -151,7 +151,7 @@ void s_eval(wchar_t* input, wchar_t* output, const size_t output_size) {
         return;
     }
 
-    swprintf(output, output_size, L"%ls: command not found", input);
+    swprintf(output, output_size, L"%ls: command not found\n", input);
 }
 
 void clear_buffers(wchar_t* input, wchar_t* output) {
