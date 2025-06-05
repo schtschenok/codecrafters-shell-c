@@ -142,7 +142,7 @@ void s_eval(wchar_t* input, wchar_t* output, const size_t output_size) {
 
     get_program_path_from_name(input, reusable_wchar_buffer);
     if (reusable_wchar_buffer[0] != L'\0') {
-        wcstombs(reusable_char_buffer, reusable_wchar_buffer, REUSABLE_CHAR_BUFFER_SIZE);
+        wcstombs(reusable_char_buffer, input, REUSABLE_CHAR_BUFFER_SIZE);
         if (context && context[0] != L'\0') {
             swprintf(reusable_wchar_buffer, REUSABLE_WCHAR_BUFFER_SIZE, L"%s %ls", reusable_char_buffer, context);
             wcstombs(reusable_char_buffer, reusable_wchar_buffer, REUSABLE_CHAR_BUFFER_SIZE);
