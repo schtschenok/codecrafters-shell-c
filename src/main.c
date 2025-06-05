@@ -162,8 +162,6 @@ void clear_buffers(wchar_t* input, wchar_t* output) {
 }
 
 int main(int argc, char* argv[]) {
-    // system("ls -la");
-    // exit(1);
 #if defined(_WIN32) || defined(_WIN64)
     _setmode(_fileno(stdout), _O_U16TEXT);
     _setmode(_fileno(stderr), _O_U16TEXT);
