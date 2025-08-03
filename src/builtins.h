@@ -8,7 +8,7 @@ struct wstring_to_function_pair {
     void (*function)(const str_t*, str_t*);
 };
 
-extern const struct wstring_to_function_pair builtins [BUILTINS_LENGTH];
+extern const struct wstring_to_function_pair builtins[BUILTINS_LENGTH];
 
 // #define SYSPATH_MAX_SIZE 4096
 //
@@ -18,13 +18,9 @@ extern const struct wstring_to_function_pair builtins [BUILTINS_LENGTH];
 //
 //
 
+void get_program_path_from_name(const str_t* input, str_t* output);
+
 BUILTIN_DEFINE(exit);
 BUILTIN_DEFINE(echo);
 BUILTIN_DEFINE(type);
 //
-// void get_program_path_from_name(wchar_t* input, wchar_t* output);
-//
-// void builtin_exit(wchar_t* input, wchar_t* output);
-// void builtin_echo(wchar_t* input, wchar_t* output);
-//
-// void builtin_type(wchar_t* input, wchar_t* output);

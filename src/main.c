@@ -15,7 +15,9 @@ const char* syspath;
 bool keep_running = true;
 
 void s_print(const str_t* input) {
-    str_write(input, stdout, true);
+    if (str_valid(input)) {
+        str_write(input, stdout, false);
+    }
 }
 
 void s_read(arena_t* arena, str_t* output) {
@@ -26,10 +28,20 @@ void s_read(arena_t* arena, str_t* output) {
 
 void s_eval(arena_t* command_arena, const str_t* input_str, str_t* output_str) {
     i64 context = -1;
-    const alloc_t alloc = arena_alloc(command_arena, input_str->length);
-    str_t token = str_from_alloc(alloc);
+    const alloc_t token_alloc = arena_alloc(command_arena, input_str->length);
+    str_t token = str_from_alloc(token_alloc);
 
     const bool not_empty = str_tokenize(input_str, ' ', &token, &context);
+
+    i64 token_offset = 0;
+    if (context >= 0) {
+        token_offset = context + 1;
+    }
+    const str_t args = {
+        .alloc = { input_str->alloc.arena, input_str->alloc.position + token_offset, input_str->alloc.size - token_offset },
+        .length = input_str->length - token_offset,
+        .capacity = input_str->capacity - token_offset
+    };
 
     if (!not_empty || token.length == 0) {
         return;
@@ -37,22 +49,15 @@ void s_eval(arena_t* command_arena, const str_t* input_str, str_t* output_str) {
 
     for (int i = 0; i < BUILTINS_LENGTH; i++) {
         if (str_eq_cstr(&token, builtins[i].string)) {
-            builtins[i].function(input_str, output_str);
+            builtins[i].function(&args, output_str);
             return;
         }
     }
 
-    // wchar_t* context = NULL;
-    // const wchar_t* token = wcstok(input, L" ", &context);
-    //
-    // if (token) {
-    //     for (int i = 0; i < BUILTINS_LENGTH; i++) {
-    //         if (wcscmp(token, builtins[i].wstring) == 0) {
-    //             builtins[i].function(context, output);
-    //             return;
-    //         }
-    //     }
-    // }
+    const alloc_t program_alloc = arena_alloc(command_arena, 4096 + sizeof(c)); // Max path length + 1 for \0
+    str_t program_path = str_from_alloc(program_alloc);
+    get_program_path_from_name(&token, &program_path);
+
     //
     // get_program_path_from_name(input, reusable_wchar_buffer);
     // if (reusable_wchar_buffer[0] != L'\0') {
@@ -72,7 +77,7 @@ int main(int argc, char* argv[]) {
     setvbuf(stdout, NULL, _IONBF, 0);
     setvbuf(stderr, NULL, _IONBF, 0);
 
-    arena_t command_arena = arena_make(4096);
+    arena_t command_arena = arena_make(1024 * 1024);
 
     syspath = getenv("PATH");
 
@@ -80,11 +85,11 @@ int main(int argc, char* argv[]) {
     while (keep_running) {
         arena_clear(&command_arena);
         printf("$ ");
-        str_t input_str;
-        str_t output_str;
+        str_t input_str = { nullptr, 0, 0 };
+        str_t output_str = { nullptr, 0, 0 };
         s_read(&command_arena, &input_str);
         s_eval(&command_arena, &input_str, &output_str);
-        // s_print(&output_str);
+        s_print(&output_str);
 
         // str_write(&input_str, stdout, false);
 

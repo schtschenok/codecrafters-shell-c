@@ -94,6 +94,9 @@ bool str_find_next_after(const str_t* str, const c character, i64* position) {
     while (*position < (i64)str->length) {
         (*position)++;
         if (base_ptr[*position] == character) {
+            while (*position < (i64)str->length && base_ptr[*position] == character) {
+                (*position)++;
+            }
             return true;
         }
     }

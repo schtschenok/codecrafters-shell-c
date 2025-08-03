@@ -8,7 +8,7 @@ const struct wstring_to_function_pair builtins[BUILTINS_LENGTH] = { { "exit", bu
                                                                     { "echo", builtin_echo },
                                                                     { "type", builtin_type } };
 
-void get_program_path_from_name(wchar_t* input, wchar_t* output) {
+void get_program_path_from_name(const str_t* input, str_t* output) {
     // if (syspath) {
     //     char path[SYSPATH_MAX_SIZE];
     //     sprintf(path, "%s", syspath);
@@ -48,12 +48,11 @@ void builtin_exit(const str_t* input, str_t* output) {
 }
 
 void builtin_echo(const str_t* input, str_t* output) {
-    printf("YOO ECHO");
-    // if (!input) {
-    //     swprintf(output, OUTPUT_BUFFER_SIZE, L"");
-    //     return;
-    // }
-    // swprintf(output, OUTPUT_BUFFER_SIZE, L"%ls\n", input);
+    if (!str_valid(input) || input->length == 0) {
+        return;
+    }
+
+    *output = *input;
 }
 
 void builtin_type(const str_t* input, str_t* output) {
