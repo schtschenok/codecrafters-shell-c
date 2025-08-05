@@ -4,36 +4,46 @@
 #include <assert.h>
 #include <string.h>
 
-str_t str_from_alloc(const alloc_t alloc) {
+bool str_valid(const str_t* str) {
+    if (!str || !str->start || !str->capacity || str->capacity < str->length) {
+        return false;
+    }
+    return true;
+}
+
+str_t str_from_size(arena_t* arena, const size_t length) {
+    assert(arena_valid(arena));
+    const void* ptr = arena_alloc(arena, length);
+    if (ptr) {
+        return (str_t){
+            .start = (c*)arena_alloc(arena, length),
+            .length = length,
+            .capacity = length
+        };
+    }
     return (str_t){
-        .alloc = alloc,
-        .capacity = alloc.size
+        .start = NULL,
+        .length = 0,
+        .capacity = 0
     };
 }
 
 str_t str_from_cstr(arena_t* arena, const c* source) {
-    assert(arena && arena->start); // Add arena_valid() function
+    assert(arena_valid(arena)); // Add arena_valid() function
     assert(source);
 
     const size_t source_string_length = strlen(source); // Needs to be changed if "c" isn't "char"
-    const alloc_t alloc = arena_alloc(arena, source_string_length * sizeof(c));
+    const void* ptr = arena_alloc(arena, source_string_length);
 
-    memcpy(arena_get_ptr(&alloc), source, source_string_length);
+    memcpy((c*)ptr, source, source_string_length);
 
     const str_t string = {
-        .alloc = alloc,
-        .capacity = alloc.size,
+        .start = (c*)ptr,
+        .capacity = source_string_length,
         .length = source_string_length
     };
 
     return string;
-}
-
-bool str_valid(const str_t* str) {
-    if (!str || !str->alloc.arena || !str->alloc.arena->start || str->capacity < str->length) {
-        return false;
-    }
-    return true;
 }
 
 bool str_copy(str_t* destination, const str_t* source) {
@@ -44,13 +54,14 @@ bool str_copy(str_t* destination, const str_t* source) {
         return false;
     }
 
-    memcpy(arena_get_ptr(&destination->alloc), arena_get_ptr(&source->alloc), source->length);
+    memcpy(destination->start, source->start, source->length);
     destination->length = source->length;
     return true;
 }
 
 bool str_eq(const str_t* str1, const str_t* str2) {
-    assert(str_valid(str1) && str_valid(str2));
+    assert(str_valid(str1));
+    assert(str_valid(str2));
 
     if (str1->length != str2->length) {
         return false;
@@ -60,10 +71,7 @@ bool str_eq(const str_t* str1, const str_t* str2) {
         return true;
     }
 
-    const c* ptr1 = arena_get_ptr(&str1->alloc);
-    const c* ptr2 = arena_get_ptr(&str2->alloc);
-
-    return memcmp(ptr1, ptr2, str1->length) == 0;
+    return memcmp(str1->start, str2->start, str1->length) == 0;
 }
 
 bool str_eq_cstr(const str_t* str, const c* cstr) {
@@ -78,23 +86,24 @@ bool str_eq_cstr(const str_t* str, const c* cstr) {
         return true;
     }
 
-    const c* ptr1 = arena_get_ptr(&str->alloc);
-    return memcmp(ptr1, cstr, str->length) == 0;
+    return memcmp(str->start, cstr, str->length) == 0;
 }
 
-// Position should be initialized as -1
+// Position should be initialized as -1 to start from the beginning
 bool str_find_next_after(const str_t* str, const c character, i64* position) {
-    assert(position);
     assert(str_valid(str));
+    assert(position);
     assert(*position < str->length);
     assert(*position >= -1);
 
-    const c* base_ptr = arena_get_ptr(&str->alloc);
+    if (*position >= str->length) {
+        return false;
+    }
 
     while (*position < (i64)str->length) {
         (*position)++;
-        if (base_ptr[*position] == character) {
-            while (*position < (i64)str->length && base_ptr[*position] == character) {
+        if (str->start[*position] == character) {
+            while (*position < (i64)str->length && str->start[*position] == character) { // TODO: FIX TOKENIZER!!!
                 (*position)++;
             }
             return true;
@@ -103,18 +112,56 @@ bool str_find_next_after(const str_t* str, const c character, i64* position) {
     return false;
 }
 
-// Context should be initialized as -1
-bool str_tokenize(const str_t* str, const c character, str_t* token, i64* context) {
+// TODO: FIX THIS SHIT
+
+str_t str_slice(const str_t* source, const size_t start, const size_t end) {
+    assert(str_valid(source));
+    assert(end >= start);
+    assert(start < source->length);
+    assert(end < source->length);
+
+    return (str_t){
+        .start = source->start + start,
+        .length = end - start,
+        .capacity = source->capacity - start
+    };
+}
+
+// Context should be initialized as -1 to start from the beginning
+bool str_tokenize(const str_t* str, const c character, i64* context, str_t* token) {
     assert(str_valid(str));
+    assert(context);
+    assert(str_valid(token));
     assert(*context >= -1);
 
-    const intptr_t start_position = *context + 1;
-
-    if (start_position >= str->length) {
+    if (*context >= str->length) {
         return false;
     }
 
-    alloc_t context_alloc = str->alloc;
+    i64 last_found = -1;
+    for (i64 position = *context + 1; position < str->length; position++) {
+        if (str->start[position] == character) {
+            last_found = position;
+        } else {
+            if (last_found == position - 1) {
+                *context = last_found;
+                return true;
+            }
+        }
+    }
+
+    i64 position = *context;
+    i64 last_found = -1;
+    bool go_next = true;
+    while (go_next) {
+        position++;
+        if (str->start[position] == character) {
+            go_next = true;
+        } else {
+            go_next = true;
+        }
+    }
+
     context_alloc.position = str->alloc.position + start_position;
     context_alloc.size = str->alloc.size - start_position;
 
@@ -147,9 +194,9 @@ bool str_tokenize(const str_t* str, const c character, str_t* token, i64* contex
 void str_write(const str_t* str, FILE* file, const bool newline) {
     assert(str_valid(str));
 
-    fwrite(arena_get_ptr(&str->alloc), sizeof(c), str->length, file);
+    fwrite(str->start, sizeof(c), str->length, file);
 
     if (newline) {
-        fwrite("\n", sizeof(c), 1, file);
+        fwrite("\n", 1, 1, file);
     }
 }

@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
     setvbuf(stdout, NULL, _IONBF, 0);
     setvbuf(stderr, NULL, _IONBF, 0);
 
-    arena_t command_arena = arena_make(1024 * 1024);
+    arena_t command_arena = arena_make(1024UL * 1024);
 
     syspath = getenv("PATH");
 
