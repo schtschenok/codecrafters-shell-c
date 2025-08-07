@@ -131,64 +131,81 @@ str_t str_slice(const str_t* source, const size_t start, const size_t end) {
 bool str_tokenize(const str_t* str, const c character, i64* context, str_t* token) {
     assert(str_valid(str));
     assert(context);
-    assert(str_valid(token));
+    // assert(str_valid(token));  // Not needed as it's filled as a slice
     assert(*context >= -1);
 
     if (*context >= str->length) {
         return false;
     }
 
+    i64 start_position = *context + 1;
     i64 last_found = -1;
-    for (i64 position = *context + 1; position < str->length; position++) {
+    i64 first_found = -1;
+    for (i64 position = start_position; position < str->length; position++) {
         if (str->start[position] == character) {
+            if (first_found == -1) {
+                first_found = position;
+            }
             last_found = position;
         } else {
-            if (last_found == position - 1) {
-                *context = last_found;
-                return true;
+            if (last_found != -1) {
+                break;
             }
         }
     }
 
-    i64 position = *context;
-    i64 last_found = -1;
-    bool go_next = true;
-    while (go_next) {
-        position++;
-        if (str->start[position] == character) {
-            go_next = true;
-        } else {
-            go_next = true;
-        }
+    if (first_found == -1) {
+        return false;
     }
 
-    context_alloc.position = str->alloc.position + start_position;
-    context_alloc.size = str->alloc.size - start_position;
+    token->start = str->start + start_position;
+    token->length = first_found - start_position;
+    token->capacity = str->capacity - start_position;
 
-    const str_t context_str = {
-        .alloc = context_alloc,
-        .length = str->length - start_position,
-        .capacity = str->capacity - start_position
-    };
-    i64 position = -1;
-    if (str_find_next_after(&context_str, character, &position)) {
-        const str_t result = {
-            .alloc = context_alloc,
-            .length = position,
-            .capacity = context_str.capacity
-        };
-        *context = start_position + position;
-        *token = result;
-        return true;
-    }
-    const str_t result = {
-        .alloc = context_alloc,
-        .length = str->length - start_position,
-        .capacity = context_str.capacity
-    };
-    *context = str->length;
-    *token = result;
+    *context = last_found; // TODO: IT'S NOT RETURNING THE LAST TOKEN!!!
+
     return true;
+
+    // return token when fitst found and return context when last found !!!!!!
+    // i64 position = *context;
+    // i64 last_found = -1;
+    // bool go_next = true;
+    // while (go_next) {
+    //     position++;
+    //     if (str->start[position] == character) {
+    //         go_next = true;
+    //     } else {
+    //         go_next = true;
+    //     }
+    // }
+    //
+    // context_alloc.position = str->alloc.position + start_position;
+    // context_alloc.size = str->alloc.size - start_position;
+    //
+    // const str_t context_str = {
+    //     .alloc = context_alloc,
+    //     .length = str->length - start_position,
+    //     .capacity = str->capacity - start_position
+    // };
+    // i64 position = -1;
+    // if (str_find_next_after(&context_str, character, &position)) {
+    //     const str_t result = {
+    //         .alloc = context_alloc,
+    //         .length = position,
+    //         .capacity = context_str.capacity
+    //     };
+    //     *context = start_position + position;
+    //     *token = result;
+    //     return true;
+    // }
+    // const str_t result = {
+    //     .alloc = context_alloc,
+    //     .length = str->length - start_position,
+    //     .capacity = context_str.capacity
+    // };
+    // *context = str->length;
+    // *token = result;
+    // return true;
 }
 
 void str_write(const str_t* str, FILE* file, const bool newline) {
