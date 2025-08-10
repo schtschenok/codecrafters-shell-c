@@ -13,7 +13,7 @@ bool arena_valid(const arena_t* arena) {
     return true;
 }
 
-size_t align_size(const size_t size, const size_t alignment) {
+size_t align_size(const size_t size, const size_t alignment) { // TODO: Can we check if it's a power of two comptime?
     return (size + (alignment - 1)) & ~(alignment - 1);
 }
 
@@ -30,7 +30,7 @@ arena_t arena_make(const size_t size) {
                              0);
     if (arena_start == MAP_FAILED) {
         perror("Unable to make an arena - mmap failed");
-        exit(1);
+        exit(1); // TODO: Return an invalid arena maybe?
     }
 
     const arena_t arena = {
@@ -45,7 +45,7 @@ void* arena_alloc(arena_t* arena, const size_t size) {
     assert(arena_valid(arena));
 
     if (size == 0) {
-        return NULL;
+        return NULL; // TODO: Think about returning a current position pointer
     }
 
     const size_t aligned_size = align_size(size, DEFAULT_ALIGNMENT);
@@ -66,7 +66,7 @@ void arena_clear(arena_t* arena) {
 }
 
 void arena_delete(arena_t* arena) {
-    assert(arena_valid(arena));
+    assert(arena_valid(arena)); // TODO: Do we need to assert for double-deletion?
 
     if (munmap((void*)arena->start, arena->capacity) != 0) {
         perror("Unable to delete an arena - munmap failed");
@@ -77,5 +77,5 @@ void arena_delete(arena_t* arena) {
     arena->capacity = 0;
     arena->position = 0;
 
-    arena = NULL;
+    arena = NULL; // TODO: Bullshit
 }
