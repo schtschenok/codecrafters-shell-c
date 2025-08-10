@@ -28,14 +28,14 @@ str_t str_from_size(arena_t* arena, const size_t length) {
     };
 }
 
-str_t str_from_cstr(arena_t* arena, const c* cstr) { // TODO: Think about allocating +1 byte for null terminator
+str_t str_from_cstr(arena_t* arena, const c* cstr) {
     assert(arena_valid(arena));
     assert(cstr);
 
     const size_t source_string_length = strlen(cstr); // Needs to be changed if "c" isn't "char"
     const void* ptr = arena_alloc(arena, source_string_length);
 
-    memcpy((c*)ptr, cstr, source_string_length); // TODO: Use memmove
+    memmove((c*)ptr, cstr, source_string_length);
 
     const str_t string = {
         .start = (c*)ptr,
@@ -54,7 +54,7 @@ bool str_copy(str_t* destination, const str_t* source) {
         return false;
     }
 
-    memcpy(destination->start, source->start, source->length); // TODO: Use memmove
+    memmove(destination->start, source->start, source->length);
     destination->length = source->length;
     return true;
 }

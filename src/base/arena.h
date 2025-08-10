@@ -11,9 +11,9 @@ typedef struct {
     size_t position;
 } arena_t;
 
-bool arena_valid(const arena_t* arena);
-
 size_t align_size(size_t size, size_t alignment);
+
+bool arena_valid(const arena_t* arena);
 
 arena_t arena_make(size_t size);
 
