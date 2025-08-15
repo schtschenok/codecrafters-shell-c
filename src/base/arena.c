@@ -34,11 +34,8 @@ arena_t arena_make(const size_t size) {
                              -1,
                              0);
     if (arena_start == MAP_FAILED) {
-        return (arena_t){
-            .start = 0,
-            .capacity = 0,
-            .position = 0
-        };
+        perror("Unable to create an arena - mmap failed");
+        exit(1);
     }
 
     const arena_t arena = {

@@ -12,5 +12,5 @@ set(CMAKE_C_STANDARD 23)
 
 #SET(CMAKE_BUILD_TYPE Debug)
 
-add_executable(shell src/builtins.c src/base/arena.c src/base/string.c src/stringplayground.c)
-#add_executable(shell src/builtins.c src/base/arena.c src/base/string.c src/main.c)
+#add_executable(shell src/builtins.c src/base/arena.c src/base/string.c src/stringplayground.c)
+add_executable(shell src/builtins.c src/base/arena.c src/base/string.c src/main.c)
