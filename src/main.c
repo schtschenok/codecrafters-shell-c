@@ -1,14 +1,106 @@
+#define ARENA_IMPLEMENTATION
 #include "base/arena.h"
 #include "base/defines.h"
+#define STRING_IMPLEMENTATION
 #include "base/string.h"
-#include "builtins.h"
-#include "definitions.h"
-
-#include <locale.h>
 #include <string.h>
 
-// char reusable_char_buffer[REUSABLE_CHAR_BUFFER_SIZE];
-// wchar_t reusable_wchar_buffer[REUSABLE_WCHAR_BUFFER_SIZE];
+#define BUILTINS_LENGTH 3
+
+struct string_to_function_pair { // TODO: Is this a good way to do LUTs?
+    char* string;
+    void (*function)(const str_t*, str_t*);
+};
+
+extern const struct string_to_function_pair builtins[BUILTINS_LENGTH];
+
+// #define SYSPATH_MAX_SIZE 4096
+//
+#define BUILTIN_DEFINE(name) void builtin_##name(const str_t* input, str_t* output)
+//
+// const char* syspath;
+//
+//
+
+void get_program_path_from_name(const str_t* input, str_t* output);
+
+BUILTIN_DEFINE(exit);
+BUILTIN_DEFINE(echo);
+BUILTIN_DEFINE(type);
+//
+
+const struct string_to_function_pair builtins[BUILTINS_LENGTH] = { { "exit", builtin_exit },
+                                                                   { "echo", builtin_echo },
+                                                                   { "type", builtin_type } };
+
+void get_program_path_from_name(const str_t* input, str_t* output) {
+    // if (syspath) {
+    //     char path[SYSPATH_MAX_SIZE];
+    //     sprintf(path, "%s", syspath);
+    //
+    //     char* context = NULL;
+    //     const char* dir = strtok_r(path, ":", &context);
+    //
+    //     struct dirent* de;
+    //
+    //     while (dir != NULL) {
+    //         DIR* dr = opendir(dir);
+    //         if (dr) {
+    //             while ((de = readdir(dr)) != NULL) {
+    //                 if (de->d_type == DT_REG) {
+    //                     mbstowcs(output, de->d_name, OUTPUT_BUFFER_SIZE);
+    //                     if (wcscmp(input, output) == 0) {
+    //                         swprintf(output, OUTPUT_BUFFER_SIZE, L"%s/%ls", dir, input);
+    //                         return;
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //         dir = strtok_r(NULL, ":", &context);
+    //     }
+    // }
+    // output[0] = L'\0';
+}
+
+void builtin_exit(const str_t* input, str_t* output) {
+    printf("YOO EXIT");
+    // if (input == NULL) {
+    //     exit(0);
+    // }
+    //
+    // const long int exit_code = wcstol(input, NULL, 10);
+    // exit(exit_code);
+}
+
+void builtin_echo(const str_t* input, str_t* output) {
+    if (!str_valid(input) || input->length == 0) {
+        return;
+    }
+
+    *output = *input;
+}
+
+void builtin_type(const str_t* input, str_t* output) {
+    printf("YOO TYPE");
+    // if (!input) {
+    //     return;
+    // }
+    //
+    // for (int i = 0; i < BUILTINS_LENGTH; i++) {
+    //     if (wcscmp(input, builtins[i].wstring) == 0) {
+    //         swprintf(output, OUTPUT_BUFFER_SIZE, L"%ls is a shell builtin\n", input);
+    //         return;
+    //     }
+    // }
+    //
+    // get_program_path_from_name(input, reusable_wchar_buffer);
+    // if (reusable_wchar_buffer[0] != L'\0') {
+    //     swprintf(output, OUTPUT_BUFFER_SIZE, L"%ls is %ls\n", input, reusable_wchar_buffer);
+    //     return;
+    // }
+    //
+    // swprintf(output, OUTPUT_BUFFER_SIZE, L"%ls: not found\n", input);
+}
 
 const char* syspath;
 
@@ -21,7 +113,7 @@ void s_print(const str_t* input) {
 }
 
 void s_read(arena_t* arena, str_t* output) {
-    c input_buffer[INPUT_BUFFER_SIZE]; // TODO: Allocate depending on actual input size instead
+    char input_buffer[4096]; // TODO: Allocate depending on actual input size instead
     fgets(input_buffer, sizeof(input_buffer), stdin);
     const size_t input_str_len = strlen(input_buffer);
     size_t actual_input_len = input_str_len;
@@ -59,7 +151,7 @@ void s_eval(arena_t* arena, const str_t* input_str, str_t* output_str) {
         }
     }
 
-    str_t program_path = str_from_size(arena, 4096 + sizeof(c));
+    str_t program_path = str_from_size(arena, 4096 + sizeof(char));
     get_program_path_from_name(&token, &program_path);
 
     //
@@ -88,8 +180,8 @@ int main(int argc, char* argv[]) {
         arena_clear(&command_arena);
         syspath = getenv("PATH");
         printf("$ ");
-        str_t input_str = { nullptr, 0, 0 };
-        str_t output_str = { nullptr, 0, 0 };
+        str_t input_str = { NULL, 0, 0 };
+        str_t output_str = { NULL, 0, 0 };
         s_read(&command_arena, &input_str);
         s_eval(&command_arena, &input_str, &output_str);
         s_print(&output_str);

@@ -1,8 +1,0 @@
-#include "base/defines.h"
-#include "base/arena.h"
-#include "base/string.h"
-#include "base/arena.c"
-#include "base/string.c"
-#include "builtins.h"
-#include "builtins.c"
-#include "main.c"

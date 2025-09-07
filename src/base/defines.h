@@ -1,7 +1,8 @@
 #pragma once
+#include <stdbool.h>
 #include <stdint.h>
-#include <uchar.h>
-#include <wchar.h>
+
+typedef bool b;
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -15,8 +16,5 @@ typedef int64_t i64;
 
 typedef float f32;
 typedef double f64;
-
-typedef char c;
-typedef wchar_t wc;
 
 typedef uint8_t byte;
