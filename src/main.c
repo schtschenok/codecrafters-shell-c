@@ -62,13 +62,19 @@ void get_program_path_from_name(const str_t* input, str_t* output) {
 }
 
 void builtin_exit(const str_t* input, str_t* output) {
-    printf("YOO EXIT");
-    // if (input == NULL) {
-    //     exit(0);
-    // }
-    //
-    // const long int exit_code = wcstol(input, NULL, 10);
-    // exit(exit_code);
+    if (input == NULL) {
+        exit(0);
+    }
+    // TODO: This is shitty, we need our own str_t -> int function
+    char buf[64];
+    if (input->length >= sizeof(buf)) {
+        exit(0);
+    }
+    memcpy(buf, input->start, input->length);
+    buf[input->length] = '\0';
+    const int exit_code = (int)strtol(buf, NULL, 10);
+
+    exit(exit_code);
 }
 
 void builtin_echo(const str_t* input, str_t* output) {
@@ -107,7 +113,7 @@ bool keep_running = true;
 
 void s_print(const str_t* input) {
     if (str_valid(input)) {
-        str_write(input, stdout, false);
+        str_write(input, stdout, true);
     }
 }
 
@@ -129,10 +135,12 @@ void s_eval(arena_t* arena, const str_t* input_str, str_t* output_str) {
 
     const bool not_empty = str_tokenize(input_str, ' ', &context, &token);
 
-    i64 token_offset = 0;
-    if (context >= 0) {
+    // Make sure we're not passing a leading space if there's one
+    i64 token_offset = context;
+    if (context >= 0 && context < input_str->length) {
         token_offset = context + 1;
     }
+
     const str_t args = {
         .start = input_str->start + token_offset,
         .length = input_str->length - token_offset,
