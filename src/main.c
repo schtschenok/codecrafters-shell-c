@@ -2,20 +2,21 @@
 #include "base/arena.h"
 #define STRING_IMPLEMENTATION
 #include "base/string.h"
+
 #include <string.h>
 
 #define BUILTINS_LENGTH 3
 
 struct string_to_function_pair { // TODO: Is this a good way to do LUTs?
     char* string;
-    void (*function)(const str_t*, str_t*);
+    void (*function)(arena_t* arena, const str_t*, str_t*);
 };
 
 extern const struct string_to_function_pair builtins[BUILTINS_LENGTH];
 
 // #define SYSPATH_MAX_SIZE 4096
 //
-#define BUILTIN_DEFINE(name) void builtin_##name(const str_t* input, str_t* output)
+#define BUILTIN_DEFINE(name) void builtin_##name(arena_t* arena, const str_t* input, str_t* output)
 //
 // const char* syspath;
 //
@@ -61,8 +62,8 @@ void get_program_path_from_name(const str_t* input, str_t* output) {
     // output[0] = L'\0';
 }
 
-void builtin_exit(const str_t* input, str_t* output) {
-    if (input == NULL) {
+void builtin_exit(arena_t* arena, const str_t* input, str_t* output) {
+    if (!str_valid(input) || input->length == 0) {
         exit(0);
     }
     // TODO: This is shitty, we need our own str_t -> int function
@@ -77,7 +78,7 @@ void builtin_exit(const str_t* input, str_t* output) {
     exit(exit_code);
 }
 
-void builtin_echo(const str_t* input, str_t* output) {
+void builtin_echo(arena_t* arena, const str_t* input, str_t* output) {
     if (!str_valid(input) || input->length == 0) {
         return;
     }
@@ -85,18 +86,22 @@ void builtin_echo(const str_t* input, str_t* output) {
     *output = *input;
 }
 
-void builtin_type(const str_t* input, str_t* output) {
-    printf("YOO TYPE");
-    // if (!input) {
-    //     return;
-    // }
-    //
-    // for (int i = 0; i < BUILTINS_LENGTH; i++) {
-    //     if (wcscmp(input, builtins[i].wstring) == 0) {
-    //         swprintf(output, OUTPUT_BUFFER_SIZE, L"%ls is a shell builtin\n", input);
-    //         return;
-    //     }
-    // }
+void builtin_type(arena_t* arena, const str_t* input, str_t* output) {
+    if (!str_valid(input) || input->length == 0) {
+        return;
+    }
+
+    // TODO: Trailing spaces make the search fail - write str_strip() (or trim, idk how to name it better)
+    for (int i = 0; i < BUILTINS_LENGTH; i++) {
+        if (str_eq_cstr(input, builtins[i].string)) {
+            *output = str_from_size(arena, input->length + 19);
+            str_copy(output, input);
+            // TODO: Write str_append() or something
+            memmove(output->start + input->length, " is a shell builtin", 19);
+            output->length += 19;
+            return;
+        }
+    }
     //
     // get_program_path_from_name(input, reusable_wchar_buffer);
     // if (reusable_wchar_buffer[0] != L'\0') {
@@ -153,7 +158,7 @@ void s_eval(arena_t* arena, const str_t* input_str, str_t* output_str) {
 
     for (int i = 0; i < BUILTINS_LENGTH; i++) {
         if (str_eq_cstr(&token, builtins[i].string)) {
-            builtins[i].function(&args, output_str);
+            builtins[i].function(arena, &args, output_str);
             return;
         }
     }
