@@ -9,10 +9,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct {
     char* start;
     u32 length;
@@ -35,13 +31,11 @@ bool str_find_next_after(const str_t* str, char character, i64* position);
 
 str_t str_slice(const str_t* source, size_t start, size_t end);
 
+str_t str_trim(const str_t* str);
+
 bool str_tokenize(const str_t* str, char separator, i64* context, str_t* token);
 
 void str_write(const str_t* str, FILE* file, bool newline);
-
-#ifdef __cplusplus
-}
-#endif
 
 /*
     Implementation section:
@@ -53,10 +47,6 @@ void str_write(const str_t* str, FILE* file, bool newline);
     Do NOT define STRING_IMPLEMENTATION in more than one translation unit.
 */
 #ifdef STRING_IMPLEMENTATION
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 bool str_valid(const str_t* str) {
     if (!str || !str->start || str->capacity < str->length) {
@@ -179,6 +169,37 @@ str_t str_slice(const str_t* source, const size_t start, const size_t end) {
     };
 }
 
+static const unsigned char trim_lut[256] = {
+    [' '] = 1,
+    ['\t'] = 1,
+    ['\n'] = 1,
+    ['\r'] = 1
+};
+
+static inline bool is_trim_char(const unsigned char c) {
+    return trim_lut[c] != 0;
+}
+
+str_t str_trim(const str_t* str) {
+    assert(str_valid(str));
+
+    size_t start = 0;
+    size_t end = str->length;
+
+    while (start < end && is_trim_char(str->start[start])) {
+        start++;
+    }
+    while (end > start && is_trim_char(str->start[end - 1])) {
+        end--;
+    }
+
+    str_t result;
+    result.start = (start == end) ? (str->start + end) : (str->start + start);
+    result.length = end - start;
+    result.capacity = str->length - start;
+    return result;
+}
+
 // Context should be initialized as -1 to start from the beginning
 bool str_tokenize(const str_t* str, const char separator, i64* context, str_t* token) {
     assert(str_valid(str));
@@ -240,7 +261,4 @@ void str_write(const str_t* str, FILE* file, const bool newline) {
     }
 }
 
-#ifdef __cplusplus
-}
-#endif
 #endif // STRING_IMPLEMENTATION

@@ -91,7 +91,6 @@ void builtin_type(arena_t* arena, const str_t* input, str_t* output) {
         return;
     }
 
-    // TODO: Trailing spaces make the search fail - write str_strip() (or trim, idk how to name it better)
     for (int i = 0; i < BUILTINS_LENGTH; i++) {
         if (str_eq_cstr(input, builtins[i].string)) {
             *output = str_from_size(arena, input->length + 19);
@@ -146,11 +145,13 @@ void s_eval(arena_t* arena, const str_t* input_str, str_t* output_str) {
         token_offset = context + 1;
     }
 
-    const str_t args = {
+    str_t args = {
         .start = input_str->start + token_offset,
         .length = input_str->length - token_offset,
         .capacity = input_str->capacity - token_offset
     };
+
+    args = str_trim(&args);
 
     if (!not_empty || token.length == 0) {
         return;

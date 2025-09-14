@@ -12,10 +12,6 @@
 
 #define DEFAULT_ALIGNMENT 8
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct {
     uintptr_t start;
     size_t capacity;
@@ -28,10 +24,6 @@ arena_t arena_make(size_t size);
 void* arena_alloc(arena_t* arena, size_t size);
 void arena_clear(arena_t* arena);
 void arena_delete(arena_t* arena);
-
-#ifdef __cplusplus
-}
-#endif
 
 static bool arena__is_power_of_two(size_t x) {
     return x != 0 && (x & (x - 1)) == 0;
@@ -47,10 +39,6 @@ static bool arena__is_power_of_two(size_t x) {
     Do NOT define ARENA_IMPLEMENTATION in more than one translation unit.
 */
 #ifdef ARENA_IMPLEMENTATION
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 size_t align_size(const size_t size, const size_t alignment) {
     assert(arena__is_power_of_two(alignment)); // TODO: Needs testing
@@ -121,7 +109,4 @@ void arena_delete(arena_t* arena) {
     arena->position = 0;
 }
 
-#ifdef __cplusplus
-}
-#endif
 #endif // ARENA_IMPLEMENTATION
