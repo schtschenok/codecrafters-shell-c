@@ -1,0 +1,14 @@
+[
+    {
+        "label": "Debug",
+        "build": {
+            "command": "make",
+            "args": ["-j8"],
+            "cwd": "$ZED_WORKTREE_ROOT/build"
+        },
+        "program": "$ZED_WORKTREE_ROOT/build/shell",
+        "request": "launch",
+        "adapter": "CodeLLDB",
+        "env": { "ASAN_OPTIONS": "detect_leaks=0" }
+    }
+]
