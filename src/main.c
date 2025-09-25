@@ -14,7 +14,7 @@ struct string_to_function_pair { // TODO: Can this be done better?
     void (*function)(arena_t* arena, const str_t*, str_t*);
 };
 
-extern const struct string_to_function_pair builtins[BUILTINS_LENGTH];
+const struct string_to_function_pair builtins[BUILTINS_LENGTH];
 
 #define BUILTIN_DEFINE(name) void builtin_##name(arena_t* arena, const str_t* input, str_t* output)
 
