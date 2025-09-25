@@ -8,5 +8,5 @@
 
 set -e # Exit on failure
 
-cmake -B build -S
+cmake -B build
 cmake --build ./build
