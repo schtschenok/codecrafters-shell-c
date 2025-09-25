@@ -1,5 +1,7 @@
 #pragma once
 
+// TODO: Should I even use str*? Maybe just copy these structs everywhere?
+
 #include "arena.h"
 #include "defines.h"
 
@@ -20,6 +22,8 @@ bool str_valid(const str_t* str);
 str_t str_from_size(arena_t* arena, size_t length);
 
 str_t str_from_cstr(arena_t* arena, const char* cstr);
+
+char* str_to_cstr(arena_t* arena, str_t* str);
 
 bool str_copy(str_t* destination, const str_t* source);
 
@@ -61,7 +65,7 @@ str_t str_from_size(arena_t* arena, const size_t length) {
     if (ptr) {
         return (str_t){
             .start = (char*)ptr,
-            .length = length,
+            .length = 0,
             .capacity = length
         };
     }
@@ -88,6 +92,15 @@ str_t str_from_cstr(arena_t* arena, const char* cstr) {
     };
 
     return string;
+}
+
+char* str_to_cstr(arena_t* arena, str_t* str) {
+    assert(str_valid(str));
+
+    char* cstr = arena_alloc(arena, str->length + 1);
+    memmove(cstr, str->start, str->length);
+    cstr[str->length] = '\0';
+    return cstr;
 }
 
 bool str_copy(str_t* destination, const str_t* source) {
@@ -159,8 +172,8 @@ bool str_find_next_after(const str_t* str, const char character, i64* position) 
 str_t str_slice(const str_t* source, const size_t start, const size_t end) {
     assert(str_valid(source));
     assert(end >= start);
-    assert(start < source->length);
-    assert(end < source->length);
+    assert(start <= source->capacity);
+    assert(end <= source->capacity);
 
     return (str_t){
         .start = source->start + start,

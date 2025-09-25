@@ -18,6 +18,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
     -fno-builtin \
     -g -O0 \
     -Wall -Werror \
-    -Wno-unused-function")
+    -Wno-unused-function \
+    -Wno-unused-variable")
 
 add_executable(shell src/main.c)

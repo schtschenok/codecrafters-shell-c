@@ -1,65 +1,75 @@
+#include <stdlib.h>
 #define ARENA_IMPLEMENTATION
 #include "base/arena.h"
 #define STRING_IMPLEMENTATION
 #include "base/string.h"
 
+#include <dirent.h>
 #include <string.h>
 
 #define BUILTINS_LENGTH 3
 
-struct string_to_function_pair { // TODO: Is this a good way to do LUTs?
+struct string_to_function_pair { // TODO: Can this be done better?
     char* string;
     void (*function)(arena_t* arena, const str_t*, str_t*);
 };
 
 extern const struct string_to_function_pair builtins[BUILTINS_LENGTH];
 
-// #define SYSPATH_MAX_SIZE 4096
-//
 #define BUILTIN_DEFINE(name) void builtin_##name(arena_t* arena, const str_t* input, str_t* output)
-//
-// const char* syspath;
-//
-//
-
-void get_program_path_from_name(const str_t* input, str_t* output);
 
 BUILTIN_DEFINE(exit);
 BUILTIN_DEFINE(echo);
 BUILTIN_DEFINE(type);
-//
 
 const struct string_to_function_pair builtins[BUILTINS_LENGTH] = { { "exit", builtin_exit },
                                                                    { "echo", builtin_echo },
                                                                    { "type", builtin_type } };
 
-void get_program_path_from_name(const str_t* input, str_t* output) {
-    // if (syspath) {
-    //     char path[SYSPATH_MAX_SIZE];
-    //     sprintf(path, "%s", syspath);
-    //
-    //     char* context = NULL;
-    //     const char* dir = strtok_r(path, ":", &context);
-    //
-    //     struct dirent* de;
-    //
-    //     while (dir != NULL) {
-    //         DIR* dr = opendir(dir);
-    //         if (dr) {
-    //             while ((de = readdir(dr)) != NULL) {
-    //                 if (de->d_type == DT_REG) {
-    //                     mbstowcs(output, de->d_name, OUTPUT_BUFFER_SIZE);
-    //                     if (wcscmp(input, output) == 0) {
-    //                         swprintf(output, OUTPUT_BUFFER_SIZE, L"%s/%ls", dir, input);
-    //                         return;
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //         dir = strtok_r(NULL, ":", &context);
-    //     }
-    // }
-    // output[0] = L'\0';
+const char* syspath;
+
+void command_not_found(arena_t* arena, const str_t* input, str_t* output) {
+    *output = str_from_size(arena, input->length + 19);
+    str_copy(output, input);
+    memmove(output->start + input->length, ": command not found", 19);
+    output->length += 19;
+}
+
+void get_program_path_from_name(arena_t* arena, const str_t* input, str_t* output) {
+    if (syspath) {
+        str_t path = str_from_cstr(arena, syspath);
+
+        i64 context = -1;
+        str_t dir = str_from_size(arena, path.length);
+
+        bool not_empty = str_tokenize(&path, ':', &context, &dir);
+
+        if (!not_empty) {
+            return;
+        }
+        struct dirent* de;
+
+        while (not_empty) {
+            char* dir_cstr = str_to_cstr(arena, &dir);
+            DIR* dr = opendir(dir_cstr);
+            if (dr) {
+                while ((de = readdir(dr)) != NULL) {
+                    if (de->d_type == DT_REG) {
+                        if (str_eq_cstr(input, de->d_name)) {
+                            *output = str_from_size(arena, dir.length + input->length + 1);
+                            str_copy(output, &dir);
+                            output->start[dir.length] = '/';
+                            str_t program_name = str_slice(output, dir.length + 1, output->capacity);
+                            str_copy(&program_name, input);
+                            output->length = output->capacity;
+                            return;
+                        }
+                    }
+                }
+            }
+            not_empty = str_tokenize(&path, ':', &context, &dir);
+        }
+    }
 }
 
 void builtin_exit(arena_t* arena, const str_t* input, str_t* output) {
@@ -101,14 +111,20 @@ void builtin_type(arena_t* arena, const str_t* input, str_t* output) {
             return;
         }
     }
-    //
-    // get_program_path_from_name(input, reusable_wchar_buffer);
-    // if (reusable_wchar_buffer[0] != L'\0') {
-    //     swprintf(output, OUTPUT_BUFFER_SIZE, L"%ls is %ls\n", input, reusable_wchar_buffer);
-    //     return;
-    // }
-    //
-    // swprintf(output, OUTPUT_BUFFER_SIZE, L"%ls: not found\n", input);
+
+    str_t program_name;
+    get_program_path_from_name(arena, input, &program_name);
+    if (str_valid(&program_name) && program_name.length) {
+        *output = str_from_size(arena, input->length + program_name.length + 6);
+        str_copy(output, input);
+        memmove(output->start + input->length, " is a ", 6);
+        str_t path_slice = str_slice(output, input->length + 6, output->capacity);
+        str_copy(&path_slice, &program_name);
+        output->length = output->capacity;
+        return;
+    }
+
+    command_not_found(arena, input, output);
 }
 
 const char* syspath;
@@ -130,7 +146,8 @@ void s_read(arena_t* arena, str_t* output) {
         actual_input_len = input_str_len - 1;
     }
     *output = str_from_size(arena, actual_input_len);
-    memcpy(output->start, input_buffer, output->length);
+    memcpy(output->start, input_buffer, output->capacity);
+    output->length = output->capacity;
 }
 
 void s_eval(arena_t* arena, const str_t* input_str, str_t* output_str) {
@@ -164,22 +181,16 @@ void s_eval(arena_t* arena, const str_t* input_str, str_t* output_str) {
         }
     }
 
-    str_t program_path = str_from_size(arena, 4096 + sizeof(char));
-    get_program_path_from_name(&token, &program_path);
+    str_t program_path;
+    get_program_path_from_name(arena, &token, &program_path);
 
-    //
-    // get_program_path_from_name(input, reusable_wchar_buffer);
-    // if (reusable_wchar_buffer[0] != L'\0') {
-    //     wcstombs(reusable_char_buffer, input, REUSABLE_CHAR_BUFFER_SIZE);
-    //     if (context && context[0] != L'\0') {
-    //         swprintf(reusable_wchar_buffer, REUSABLE_WCHAR_BUFFER_SIZE, L"%s %ls", reusable_char_buffer, context);
-    //         wcstombs(reusable_char_buffer, reusable_wchar_buffer, REUSABLE_CHAR_BUFFER_SIZE);
-    //     }
-    //     system(reusable_char_buffer);
-    //     return;
-    // }
-    //
-    // swprintf(output, output_size, L"%ls: command not found\n", input);
+    if (str_valid(&program_path) && program_path.length) {
+        const char* program_path_cstr = str_to_cstr(arena, &program_path);
+        system(program_path_cstr);
+        return;
+    }
+
+    command_not_found(arena, &token, output_str);
 }
 
 int main(int argc, char* argv[]) {
@@ -188,7 +199,6 @@ int main(int argc, char* argv[]) {
 
     arena_t command_arena = arena_make(1024UL * 1024);
 
-    // ReSharper disable once CppDFALoopConditionNotUpdated
     while (keep_running) {
         arena_clear(&command_arena);
         syspath = getenv("PATH");
@@ -198,26 +208,5 @@ int main(int argc, char* argv[]) {
         s_read(&command_arena, &input_str);
         s_eval(&command_arena, &input_str, &output_str);
         s_print(&output_str);
-
-        // TODO: echo is incredibly broken now if there's no args to it
-
-        // str_write(&input_str, stdout, false);
-
-        // i64 context = -1;
-        // i64 position = -1;
-        // while (str_find_next_after(&input_str, ' ', &position)) {
-        //     str_write(&input_str, stdout, false);
-        //     printf("%ld\n", position);
-        // }
-
-        // str_t token;
-        //
-        // bool more_tokens = true;
-        // while (str_tokenize(&input_str, ' ', &token, &context)) {
-        //     str_write(&token, stdout, true);
-        // }
-
-        // s_eval(input_buffer, output_buffer, OUTPUT_BUFFER_SIZE);
-        // s_print(output_buffer);
     }
 }
