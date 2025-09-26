@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.30)
 
-# set(CMAKE_C_COMPILER clang)
+set(CMAKE_C_COMPILER clang)
 
 set(CMAKE_GENERATOR Ninja)
 
@@ -20,5 +20,15 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
     -Wall -Werror \
     -Wno-unused-function \
     -Wno-unused-variable")
+
+# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
+#     -fno-omit-frame-pointer \
+#     -mno-omit-leaf-frame-pointer \
+#     -fno-inline \
+#     -fno-builtin \
+#     -g -O0 \
+#     -Wall -Werror \
+#     -Wno-unused-function \
+#     -Wno-unused-variable")
 
 add_executable(shell src/main.c)

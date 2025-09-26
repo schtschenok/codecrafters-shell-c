@@ -1,2 +1,2 @@
 CompileFlags:
-  Add: [-Wno-unused-variable]
+  Add: [-Wno-unused-variable, -ferror-limit=1000]

@@ -46,7 +46,7 @@ size_t align_size(const size_t size, const size_t alignment) {
 }
 
 bool arena_valid(const arena_t* arena) {
-    if (!arena || !arena->start || !arena->capacity) {
+    if (!arena || !arena->start || !arena->capacity || arena->capacity < arena->position) {
         return false;
     }
     return true;
