@@ -17,7 +17,7 @@ typedef struct {
     u32 capacity;
 } str_t;
 
-bool str_valid(const str_t str);
+bool str_valid(const str_t* str);
 
 str_t str_from_size(arena_t* arena, size_t length);
 
@@ -41,6 +41,30 @@ bool str_tokenize(const str_t str, char separator, i64* context, str_t* token);
 
 void str_write(const str_t str, FILE* file, bool newline);
 
+bool str_append(str_t* destination, const str_t source);
+
+bool str_append_cstr(str_t* destination, const char* source);
+
+str_t str_from_append(arena_t* arena, const str_t destination, const str_t source);
+
+str_t str_from_append_cstr(arena_t* arena, const str_t destination, const char* source);
+
+str_t str_from_i64(i64 i);
+
+str_t str_from_i32(i32 i);
+
+str_t str_from_i16(i16 i);
+
+str_t str_from_i8(i8 i);
+
+str_t str_from_u64(i64 i);
+
+str_t str_from_u32(i32 i);
+
+str_t str_from_u16(i16 i);
+
+str_t str_from_u8(i8 i);
+
 /*
     Implementation section:
 
@@ -52,8 +76,8 @@ void str_write(const str_t str, FILE* file, bool newline);
 */
 #ifdef STRING_IMPLEMENTATION
 
-bool str_valid(const str_t str) {
-    if (!str.start || str.capacity < str.length) {
+bool str_valid(const str_t* str) {
+    if (!str || !str->start || str->capacity < str->length) {
         return false;
     }
     return true;
@@ -95,7 +119,7 @@ str_t str_from_cstr(arena_t* arena, const char* cstr) {
 }
 
 char* str_to_cstr(arena_t* arena, str_t str) {
-    assert(str_valid(str));
+    assert(str_valid(&str));
 
     char* cstr = arena_alloc(arena, str.length + 1);
     memmove(cstr, str.start, str.length);
@@ -104,8 +128,8 @@ char* str_to_cstr(arena_t* arena, str_t str) {
 }
 
 bool str_copy(str_t* destination, const str_t source) {
-    assert(str_valid(source));
-    assert(destination && str_valid(*destination));
+    assert(str_valid(&source));
+    assert(str_valid(destination));
 
     if (destination->capacity < source.length) {
         return false;
@@ -117,8 +141,8 @@ bool str_copy(str_t* destination, const str_t source) {
 }
 
 bool str_eq(const str_t str1, const str_t str2) {
-    assert(str_valid(str1));
-    assert(str_valid(str2));
+    assert(str_valid(&str1));
+    assert(str_valid(&str2));
 
     if (str1.length != str2.length) {
         return false;
@@ -132,7 +156,7 @@ bool str_eq(const str_t str1, const str_t str2) {
 }
 
 bool str_eq_cstr(const str_t str, const char* cstr) {
-    assert(str_valid(str));
+    assert(str_valid(&str));
     assert(cstr);
 
     if (str.length != strlen(cstr)) {
@@ -148,7 +172,7 @@ bool str_eq_cstr(const str_t str, const char* cstr) {
 
 // Position should be initialized as -1 to start from the beginning
 bool str_find_next_after(const str_t str, const char character, i64* position) {
-    assert(str_valid(str));
+    assert(str_valid(&str));
     assert(position);
     assert(*position < str.length - 1); // TODO: Added "- 1", NEEDS TESTING
     assert(*position >= -1);
@@ -170,7 +194,7 @@ bool str_find_next_after(const str_t str, const char character, i64* position) {
 }
 
 str_t str_slice(const str_t source, const size_t start, const size_t end) {
-    assert(str_valid(source));
+    assert(str_valid(&source));
     assert(end >= start);
     assert(start <= source.capacity);
     assert(end <= source.capacity);
@@ -194,7 +218,7 @@ static inline bool is_trim_char(const unsigned char c) {
 }
 
 str_t str_trim(const str_t str) {
-    assert(str_valid(str));
+    assert(str_valid(&str));
 
     size_t start = 0;
     size_t end = str.length;
@@ -215,7 +239,7 @@ str_t str_trim(const str_t str) {
 
 // Context should be initialized as -1 to start from the beginning
 bool str_tokenize(const str_t str, const char separator, i64* context, str_t* token) {
-    assert(str_valid(str));
+    assert(str_valid(&str));
     assert(context);
     assert(*context >= -1);
 
@@ -264,7 +288,7 @@ bool str_tokenize(const str_t str, const char separator, i64* context, str_t* to
 }
 
 void str_write(const str_t str, FILE* file, const bool newline) {
-    assert(str_valid(str));
+    assert(str_valid(&str));
 
     fwrite(str.start, sizeof(char), str.length, file);
 
@@ -272,5 +296,75 @@ void str_write(const str_t str, FILE* file, const bool newline) {
         fwrite("\n", 1, 1, file);
     }
 }
+
+bool str_append(str_t* destination, const str_t source) {
+    assert(str_valid(destination));
+    assert(str_valid(&source));
+
+    if (destination->capacity - destination->length < source.length) {
+        return false;
+    }
+
+    memmove(destination->start + destination->length, source.start, source.length);
+    return true;
+};
+
+bool str_append_cstr(str_t* destination, const char* source) {
+    assert(str_valid(destination));
+    assert(source);
+
+    const size_t source_length = strlen(source);
+
+    if (destination->capacity - destination->length < source_length) {
+        return false;
+    }
+
+    memmove(destination->start + destination->length, source, source_length);
+    return true;
+};
+
+str_t str_from_append(arena_t* arena, const str_t destination, const str_t source) {
+    assert(arena_valid(arena));
+    assert(str_valid(&destination) && str_valid(&source));
+
+    const size_t result_length = destination.length + source.length;
+    str_t result = str_from_size(arena, result_length);
+    memmove(result.start, destination.start, destination.length);
+    memmove(result.start + destination.length, source.start, source.length);
+    return result;
+};
+
+str_t str_from_append_cstr(arena_t* arena, const str_t destination, const char* source) {
+    assert(arena_valid(arena));
+    assert(str_valid(&destination) && source);
+
+    const size_t source_length = strlen(source);
+    const size_t result_length = destination.length + source_length;
+    str_t result = str_from_size(arena, result_length);
+    memmove(result.start, destination.start, destination.length);
+    memmove(result.start + destination.length, source, source_length);
+    return result;
+};
+
+// str_t str_from_i64(i64 i);
+
+// str_t str_from_i32(i32 i);
+
+// str_t str_from_i16(i16 i);
+
+// str_t str_from_i8(i8 i);
+
+// str_t str_from_u64(i64 i) {
+//     bool keep_running = true;
+//     while (keep_running) {
+//         if (i % 10)
+//     }
+// };
+
+// str_t str_from_u32(i32 i);
+
+// str_t str_from_u16(i16 i);
+
+// str_t str_from_u8(i8 i);
 
 #endif // STRING_IMPLEMENTATION

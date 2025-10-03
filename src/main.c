@@ -3,8 +3,8 @@
 #define STRING_IMPLEMENTATION
 #include "base/string.h"
 
-#include <stdlib.h>
 #include <dirent.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define BUILTINS_LENGTH 3
@@ -66,7 +66,7 @@ void get_program_path_from_name(arena_t* arena, const str_t input, str_t* output
 }
 
 void builtin_exit(arena_t* arena, const str_t input, str_t* output) {
-    if (!str_valid(input) || input.length == 0) {
+    if (!str_valid(&input) || input.length == 0) {
         exit(0);
     }
     // TODO: This is shitty, we need our own str_t -> int function
@@ -82,7 +82,7 @@ void builtin_exit(arena_t* arena, const str_t input, str_t* output) {
 }
 
 void builtin_echo(arena_t* arena, const str_t input, str_t* output) {
-    if (!str_valid(input) || input.length == 0) {
+    if (!str_valid(&input) || input.length == 0) {
         return;
     }
 
@@ -90,7 +90,7 @@ void builtin_echo(arena_t* arena, const str_t input, str_t* output) {
 }
 
 void builtin_type(arena_t* arena, const str_t input, str_t* output) {
-    if (!str_valid(input) || input.length == 0) {
+    if (!str_valid(&input) || input.length == 0) {
         return;
     }
 
@@ -107,7 +107,7 @@ void builtin_type(arena_t* arena, const str_t input, str_t* output) {
 
     str_t program_name;
     get_program_path_from_name(arena, input, &program_name);
-    if (str_valid(program_name) && program_name.length) {
+    if (str_valid(&program_name) && program_name.length) {
         *output = str_from_size(arena, input.length + program_name.length + 4);
         str_copy(output, input);
         memmove(output->start + input.length, " is ", 4);
@@ -128,7 +128,7 @@ const char* syspath;
 bool keep_running = true;
 
 void s_print(const str_t input) {
-    if (str_valid(input)) {
+    if (str_valid(&input)) {
         str_write(input, stdout, true);
     }
 }
@@ -180,7 +180,7 @@ void s_eval(arena_t* arena, const str_t input_str, str_t* output_str) {
     str_t program_path;
     get_program_path_from_name(arena, token, &program_path);
 
-    if (str_valid(program_path) && program_path.length) {
+    if (str_valid(&program_path) && program_path.length) {
         const char* program_path_cstr = str_to_cstr(arena, program_path);
         system(program_path_cstr);
         return;

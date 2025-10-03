@@ -1,2 +1,2 @@
 CompileFlags:
-  Add: [-Wno-unused-variable]
+  Add: [-Wno-unused-variable, -Wno-macro-redefined, -DARENA_IMPLEMENTATION, -DSTRING_IMPLEMENTATION]
