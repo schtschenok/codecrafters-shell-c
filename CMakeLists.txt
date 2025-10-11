@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.13)
 
 set(CMAKE_C_COMPILER clang)
 
@@ -15,7 +15,6 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
     -fno-omit-frame-pointer \
     -mno-omit-leaf-frame-pointer \
     -fno-inline \
-    -fno-builtin \
     -g -O0 \
     -Wall -Werror \
     -Wno-unused-function \

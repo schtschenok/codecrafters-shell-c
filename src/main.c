@@ -1,5 +1,3 @@
-#define ARENA_IMPLEMENTATION
-#include "base/arena.h"
 #define STRING_IMPLEMENTATION
 #include "base/string.h"
 

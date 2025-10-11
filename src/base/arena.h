@@ -1,85 +1,92 @@
 #pragma once
 
-#include "defines.h"
-
 #include <assert.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <sys/mman.h>
 #include <unistd.h>
+
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#include "sanitizer/asan_interface.h"
+#define ASAN_POISON_MEMORY_REGION(addr, size) \
+    __asan_poison_memory_region((addr), (size))
+#define ASAN_UNPOISON_MEMORY_REGION(addr, size) \
+    __asan_unpoison_memory_region((addr), (size))
+#else
+#define ASAN_POISON_MEMORY_REGION(addr, size) \
+    ((void)(addr), (void)(size))
+#define ASAN_UNPOISON_MEMORY_REGION(addr, size) \
+    ((void)(addr), (void)(size))
+#endif
+
+#ifdef ARENA_IMPLEMENTATION
+#ifndef CORE_IMPLEMENTATION
+#define CORE_IMPLEMENTATION
+#endif
+#endif
+#include "core.h"
 
 #define DEFAULT_ALIGNMENT 8
 
 typedef struct {
-    uintptr_t start;
-    size_t capacity;
-    size_t position;
+    uptr start;
+    i64 capacity;
+    i64 position;
 } arena_t;
 
-size_t align_size(size_t size, size_t alignment);
-bool arena_valid(const arena_t* arena);
 arena_t arena_make(size_t size);
-void* arena_alloc(arena_t* arena, size_t size);
-void arena_clear(arena_t* arena);
-void arena_delete(arena_t* arena);
+static inline bool arena_valid(const arena_t* arena);
+static inline void* arena_alloc(arena_t* arena, size_t size);
+static inline void* arena_alloc_aligned(arena_t* arena, const size_t size, const size_t alignment);
+static inline void arena_clear(arena_t* arena);
+static inline void arena_release(arena_t* arena);
+bool arena_delete(arena_t* arena);
 
-static bool arena__is_power_of_two(size_t x) {
-    return x != 0 && (x & (x - 1)) == 0;
-}
-
-/*
-    Implementation section:
-
-    Define ARENA_IMPLEMENTATION in exactly one C/C++ file BEFORE including this header:
-        #define ARENA_IMPLEMENTATION
-        #include "arena.h"
-
-    Do NOT define ARENA_IMPLEMENTATION in more than one translation unit.
-*/
 #ifdef ARENA_IMPLEMENTATION
-
-size_t align_size(const size_t size, const size_t alignment) {
-    assert(arena__is_power_of_two(alignment)); // TODO: Needs testing
-    return (size + (alignment - 1)) & ~(alignment - 1);
-}
-
-bool arena_valid(const arena_t* arena) {
-    if (!arena || !arena->start || !arena->capacity || arena->capacity < arena->position) {
-        return false;
-    }
-    return true;
-}
 
 arena_t arena_make(const size_t size) {
     assert(size > 0);
 
     const size_t aligned_size = align_size(size, getpagesize());
 
-    void* arena_start = mmap(NULL,
-                             aligned_size,
-                             PROT_READ | PROT_WRITE,
-                             MAP_PRIVATE | MAP_ANONYMOUS,
-                             -1,
-                             0);
+    const void* arena_start = mmap(NULL,
+                                   aligned_size,
+                                   PROT_READ | PROT_WRITE,
+                                   MAP_PRIVATE | MAP_ANONYMOUS,
+                                   -1,
+                                   0);
     if (arena_start == MAP_FAILED) {
-        perror("Unable to create an arena - mmap failed");
-        exit(1);
+        return (arena_t){ .start = 0,
+                          .capacity = 0,
+                          .position = 0 };
     }
 
+    ASAN_POISON_MEMORY_REGION((void*)arena_start, aligned_size);
+
     const arena_t arena = {
-        .start = (uintptr_t)arena_start,
+        .start = (uptr)arena_start,
         .capacity = aligned_size,
         .position = 0
     };
     return arena;
 }
 
-void* arena_alloc(arena_t* arena, const size_t size) {
+static inline bool arena_valid(const arena_t* arena) {
+    if (!arena || !arena->start || !arena->capacity || arena->capacity < arena->position) {
+        return false;
+    }
+    return true;
+}
+
+static inline void* arena_alloc(arena_t* arena, const size_t size) {
     assert(arena_valid(arena));
 
-    const size_t aligned_size = align_size(size, DEFAULT_ALIGNMENT);
+    return arena_alloc_aligned(arena, size, DEFAULT_ALIGNMENT);
+}
+
+static inline void* arena_alloc_aligned(arena_t* arena, const size_t size, const size_t alignment) {
+    assert(arena_valid(arena));
+    assert(is_power_of_two(alignment));
+
+    const size_t aligned_size = align_size(size, alignment);
 
     if (arena->capacity - arena->position < aligned_size) {
         return NULL;
@@ -87,26 +94,42 @@ void* arena_alloc(arena_t* arena, const size_t size) {
 
     void* ptr = (void*)(arena->start + arena->position);
     arena->position += aligned_size;
+
+    ASAN_UNPOISON_MEMORY_REGION((void*)ptr, aligned_size);
+
     return ptr;
 }
 
-void arena_clear(arena_t* arena) {
+static inline void arena_clear(arena_t* arena) {
     assert(arena_valid(arena));
+
+    ASAN_POISON_MEMORY_REGION((void*)arena->start, arena->capacity);
 
     arena->position = 0;
 }
 
-void arena_delete(arena_t* arena) {
-    if (arena_valid(arena)) {
-        if (munmap((void*)arena->start, arena->capacity) != 0) {
-            perror("Unable to delete an arena - munmap failed");
-            exit(1);
-        }
-    }
+static inline void arena_release(arena_t* arena) {
+    assert(arena_valid(arena));
+
+    madvise((void*)arena->start, arena->capacity, MADV_DONTNEED);
+
+    ASAN_POISON_MEMORY_REGION((void*)arena->start, arena->capacity);
+
+    arena->position = 0;
+}
+
+bool arena_delete(arena_t* arena) {
+    assert(arena_valid(arena));
+
+    ASAN_POISON_MEMORY_REGION((void*)arena->start, arena->capacity);
+
+    const bool result = munmap((void*)arena->start, arena->capacity) == 0;
 
     arena->start = 0;
     arena->capacity = 0;
     arena->position = 0;
+
+    return result;
 }
 
-#endif // ARENA_IMPLEMENTATION
+#endif
